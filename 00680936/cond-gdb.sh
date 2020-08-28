@@ -2,7 +2,7 @@
 
 # USAGE: cond-gdb.sh MONGODB_CONN_STRING_URI PID
 
-set -e
+#set -e
 
 THRESHOLD_ACTIVE_CONNS=500
 
@@ -11,19 +11,25 @@ PID=$2
 
 process_trigger() {
     active_conns=$(mongo $MONGODB_CONN_STRING_URI --quiet --eval 'db.serverStatus().connections.active')
-    if [ $active_conns -ge $THRESHOLD_ACTIVE_CONNS ]
-    then
-        echo "[$(date -u)] (serverStatus.connections.active: $active_conns) condition triggered! collecting GDB..."
-	gdb -p $PID -batch -ex 'thread apply all bt' > /tmp/gdb-$(hostname -f)-stacks-$(date -u '+%Y-%m-%dT%H-%M-%SZ').txt
-        echo "[$(date -u)] (serverStatus.connections.active: $active_conns) waiting for the next triggering period (20s)..."
-	sleep 20
-    else
-    	echo "[$(date -u)] (serverStatus.connections.active: $active_conns) waiting for the next triggering period (1s)..."
+
+    if [[ $? != 0 ]]; then
+        echo "[$(date -u)] failed to connect to the server at $MONGODB_CONN_STRING_URI, is the server running?"
 	sleep 1
+    else
+        if [ $active_conns -ge $THRESHOLD_ACTIVE_CONNS ]
+        then
+            echo "[$(date -u)] (serverStatus.connections.active: $active_conns) condition triggered! collecting GDB..."
+	    gdb -p $PID -batch -ex 'thread apply all bt' > /tmp/gdb-$(hostname -f)-stacks-$(date -u '+%Y-%m-%dT%H-%M-%SZ').txt
+            echo "[$(date -u)] (serverStatus.connections.active: $active_conns) waiting for the next triggering period (20s)..."
+            sleep 20
+        else
+    	    echo "[$(date -u)] (serverStatus.connections.active: $active_conns) waiting for the next triggering period (1s)..."
+	    sleep 1
+        fi
     fi
 }
 
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 2 ]; then
     echo "Usage:"
     echo "  $0 MONGODB_CONN_STRING_URI PID"
     echo "Example:"
