@@ -5,8 +5,8 @@ set -e
 
 THRESHOLD_ACTIVE_CONNS=500
 
-PID=$1
-CONNSTRING=$2
+CONNSTRING=$1
+PID=$2
 
 wait_for_trigger() {
     active_conns=$(mongo $CONNSTRING --quiet --eval 'db.serverStatus().connections.active')
@@ -21,6 +21,16 @@ wait_for_trigger() {
 	sleep 1
     fi
 }
+
+if [ "$#" -ne 3 ]; then
+    echo "Usage:"
+    echo "  $0 MONGODB_CONN_STRING_URI PID"
+    echo "Example:"
+    echo "  $0 \"mongodb://user:password@localhost:27017\" \$(pidof mongod)"
+    exit
+fi
+
+echo "Host: $(hostname -f), PID: $PID"
 
 while :
 do
