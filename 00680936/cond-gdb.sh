@@ -1,15 +1,16 @@
 #!/bin/bash
-# USAGE: stacks.sh CONNSTRING PID
+
+# USAGE: cond-gdb.sh MONGODB_CONN_STRING_URI PID
 
 set -e
 
 THRESHOLD_ACTIVE_CONNS=500
 
-CONNSTRING=$1
+MONGODB_CONN_STRING_URI=$1
 PID=$2
 
-wait_for_trigger() {
-    active_conns=$(mongo $CONNSTRING --quiet --eval 'db.serverStatus().connections.active')
+process_trigger() {
+    active_conns=$(mongo $MONGODB_CONN_STRING_URI --quiet --eval 'db.serverStatus().connections.active')
     if [ $active_conns -ge $THRESHOLD_ACTIVE_CONNS ]
     then
         echo "[$(date -u)] (serverStatus.connections.active: $active_conns) condition triggered! collecting GDB..."
@@ -34,5 +35,5 @@ echo "Host: $(hostname -f), PID: $PID"
 
 while :
 do
-    wait_for_trigger
+    process_trigger
 done
